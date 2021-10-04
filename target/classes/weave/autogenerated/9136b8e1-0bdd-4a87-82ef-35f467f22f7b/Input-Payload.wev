@@ -1,0 +1,13 @@
+%dw 2.0
+
+type auto_9136b8e1_0bdd_4a87_82ef_35f467f22f7b_Input_Payload = {
+  flightCode: String, 
+  price: Number, 
+  origination: String, 
+  destination: String, 
+  airline?: String, 
+  people: Number, 
+  bookingId?: String, 
+  _?: Any
+}
+

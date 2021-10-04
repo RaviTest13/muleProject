@@ -1,0 +1,26 @@
+%dw 2.0
+
+type auto_46de0046_42b5_4b3e_8afb_782b7800d313_Input_Attributes = {|
+  clientCertificate?: {|
+    publicKey?: {|  |}, 
+    "type"?: String, 
+    encoded?: Binary
+  |}, 
+  headers: {|  |}, 
+  listenerPath: String, 
+  method: String, 
+  queryParams: {|  |}, 
+  queryString: String, 
+  relativePath: String, 
+  remoteAddress: String, 
+  requestPath: String, 
+  requestUri: String, 
+  scheme: String, 
+  uriParams: {|
+    airline: String, 
+    "booking-id": String
+  |}, 
+  version: String, 
+  localAddress: String
+|}
+

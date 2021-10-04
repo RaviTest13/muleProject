@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:flight-booking-api="http://www.mulesoft.org/schema/mule/flight-booking-api" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/flight-booking-api http://www.mulesoft.org/schema/mule/flight-booking-api/current/mule-flight-booking-api.xsd">
+	<flow name="get-flights" doc:id="fd9cd56f-063b-44a7-93af-84d94cf894f2" >
+		<db:select doc:name="Select" doc:id="ca408f21-8a36-4d49-b987-41cb0cd71758" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from flights;]]></db:sql>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="9b96e0de-8621-43df-ae66-96feb93799a5" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map(item, index) -> {
+	"airline": item.airline,
+    "flightCode": item.flight_code,
+    "price": item.price,
+    "origination": item.origin,
+    "destination": item.destination,
+    "seats":{
+      "totalSeats": item.total_seats,
+      "emptySeats": item.available_seats
+      }
+}
+	
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="get-flights-airline" doc:id="4322771c-5ef1-45e9-a483-cf332c34ecc4" >
+		<choice doc:name="Choice" doc:id="4d311ebf-b790-4f39-af66-6939065081b8" >
+			<when expression='#[attributes.queryParams.destination != null]'>
+				<db:select doc:name="Select" doc:id="6e8dabb0-038f-4124-98e4-587fed517804" config-ref="Database_Config">
+					<db:sql ><![CDATA[select * from flights where airline = :airline and destination = :dest;]]></db:sql>
+					<db:input-parameters ><![CDATA[#[{
+	airline: attributes.uriParams.airline,
+	dest: attributes.queryParams.destination
+}]]]></db:input-parameters>
+				</db:select>
+			</when>
+			<otherwise >
+				<db:select doc:name="Select" doc:id="b9a64f72-ea0d-464d-ae4c-c45a306528c7" config-ref="Database_Config">
+			<db:sql><![CDATA[select * from flights where airline = :airline;]]></db:sql>
+			<db:input-parameters><![CDATA[#[{
+	airline: attributes.uriParams.'airline'
+}]]]></db:input-parameters>
+		</db:select>
+			</otherwise>
+		</choice>
+		<ee:transform doc:name="Transform Message" doc:id="0883c0d4-03b9-481e-95aa-cfc62e8983ed" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map(item, index) -> {
+	"airline": item.airline,
+    "flightCode": item.flight_code,
+    "price": item.price,
+    "origination": item.origin,
+    "destination": item.destination,
+    "seats":{
+      "totalSeats": item.total_seats,
+      "emptySeats": item.available_seats
+      }
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="post-flights-airline-booking" doc:id="980c6788-cfcc-491b-be67-a60f2020966c" >
+		<ee:transform doc:name="Transform Message" doc:id="d890d8b6-ea2a-4806-afa3-8b0ade5f58d4" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+fun gen() = randomInt(9999999)
+fun generateBookingId(code : String, origin : String, dest : String) = 
+code ++ "-" ++ origin ++ "-" ++ 
+ gen() as String {format: "#######"}++ "-" ++
+ dest  
+
+---
+{
+	"airline": attributes.uriParams.'airline'as String,
+    "flightCode": payload.flightCode as String,
+    "price": payload.price as Number,
+    "origination": payload.origination as String,
+    "destination": payload.destination as String,
+    "people": payload.people as Number,
+    "bookingId": generateBookingId(payload.flightCode, payload.origination, payload.destination) as String
+    
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<set-variable value="#[payload.bookingId as String]" doc:name="booking-id" doc:id="77abf1a6-6671-44f4-b639-a70eac3ce58a" variableName="booking-id"/>
+		<db:insert doc:name="Insert" doc:id="bd4d03f5-b9f0-468d-bce0-a37e43a7fdf2" config-ref="Database_Config">
+			<db:sql ><![CDATA[INSERT INTO bookings(origin, airline, flight_code, destination, price, booking_id, people)
+VALUES (:origin, :airline, :code, :dest, :price, :id, :people);]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	origin: payload.origination as String,
+	airline: attributes.uriParams.'airline' as String,
+	code: payload.flightCode as String,
+	dest: payload.destination as String,
+	price: payload.price as Number,
+	id: payload.bookingId as String,
+	people: payload.people as Number
+	
+	
+}]]]></db:input-parameters>
+		</db:insert>
+		<ee:transform doc:name="Transform Message" doc:id="a03b06d7-beab-4463-8c37-469c738dbd26" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "Booking made Successfully!!. Your Booking Id is " ++ vars.'booking-id'
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="get-flights-airline-bookings" doc:id="88bc1eea-27ab-480d-bd71-b3f167ad8edd" >
+		<db:select doc:name="Select" doc:id="3b13b882-6809-4e7d-9384-9c51de7cb49c" config-ref="Database_Config" >
+			<db:sql ><![CDATA[select * from bookings where airline = :airline;]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	airline: attributes.uriParams.'airline'	
+}]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="eb3f73e9-9fc6-447a-9308-e0a38404acec" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map(item, index) -> {
+	"airline": item.airline,
+    "flightCode": item.flight_code,
+    "price": item.price,
+    "origination": item.origin,
+    "destination": item.destination,
+    "people": item.people,
+    "bookingId": item.booking_id
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="get-flights-airline-booking-id" doc:id="0b329aa9-6742-44d1-80fe-c84d7eb62b91" >
+		<db:select doc:name="Select" doc:id="782447f6-f1d0-4b9f-8d5a-82c1cae01055" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from bookings where booking_id = :id]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	id: attributes.uriParams.'booking-id' as String
+}]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="b7c097f3-aaaf-4fe5-a391-000eb3e2bf10" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	flightCode: payload[0].flight_code default "",
+	price: payload[0].price default 0,
+	origination: payload[0].origin default "",
+	destination: payload[0].destination default "",
+	airline: payload[0].airline,
+	people: payload[0].people default 0,
+	bookingId: payload[0].booking_id
+}
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="put-flights-airline-booking-id" doc:id="9136b8e1-0bdd-4a87-82ef-35f467f22f7b" >
+		<set-variable value="#[attributes.uriParams.'booking-id']" doc:name="booking-id" doc:id="ca398f8c-7b87-44dd-8e5b-551fce34e695" variableName="booking-id"/>
+		<db:update doc:name="Update" doc:id="cb3fa3f4-f629-424d-b43a-35bd82005b82" config-ref="Database_Config">
+			<db:sql ><![CDATA[update bookings
+set origin = :origin, airline = :airline, flight_code = :code, destination = :dest, price = :price, people = :people
+where booking_id = :id]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	origin: payload.origination as String,
+	airline: attributes.uriParams.'airline' as String,
+	code: payload.flightCode as String,
+	dest: payload.destination as String,
+	price: payload.price as Number,
+	id: vars.'booking-id' as String,
+	people: payload.people as Number
+
+}]]]></db:input-parameters>
+		</db:update>
+		<ee:transform doc:name="Transform Message" doc:id="9dd45934-bee8-4186-a689-9a270b049cd4" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "Booking updated successfully!! for this Booking Id: " ++  vars.'booking-id' as String
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="delete-flights-airline-booking-id" doc:id="46de0046-42b5-4b3e-8afb-782b7800d313" >
+		<db:delete doc:name="Delete" doc:id="8d3a5678-751c-4459-b70f-bc68f1009048" config-ref="Database_Config">
+			<db:sql ><![CDATA[delete from bookings where booking_id = :id]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	id : attributes.uriParams.'booking-id'
+}]]]></db:input-parameters>
+		</db:delete>
+		<ee:transform doc:name="Transform Message" doc:id="ba427ce3-7380-43f7-8545-b1451526b9a2" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "Booking deleted successfully!!!"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>

@@ -1,0 +1,8 @@
+http:
+  port: '8081'
+
+database:
+  url: jdbc:postgresql://fanny.db.elephantsql.com:5432/bmzosepq
+  username: bmzosepq
+  password: mbfnviREvWXDU9oKQ4krxDid4btPiToL
+  driver: org.postgresql.Driver

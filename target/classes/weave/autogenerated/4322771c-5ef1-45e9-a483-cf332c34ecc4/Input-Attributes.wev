@@ -1,0 +1,23 @@
+%dw 2.0
+
+type auto_4322771c_5ef1_45e9_a483_cf332c34ecc4_Input_Attributes = {|
+  clientCertificate?: {|
+    publicKey?: {|  |}, 
+    "type"?: String, 
+    encoded?: Binary
+  |}, 
+  headers: {|  |}, 
+  listenerPath: String, 
+  method: String, 
+  queryParams: {| destination?: "GOI" | "PNQ" | "BLR" |}, 
+  queryString: String, 
+  relativePath: String, 
+  remoteAddress: String, 
+  requestPath: String, 
+  requestUri: String, 
+  scheme: String, 
+  uriParams: {| airline: String |}, 
+  version: String, 
+  localAddress: String
+|}
+

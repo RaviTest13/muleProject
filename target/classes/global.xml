@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule
+	xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd 
+http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd 
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd">
+	<configuration-properties
+		doc:name="Configuration properties"
+		doc:id="247cdf35-cdfc-4169-94ca-f5d92fdbdb86"
+		file="config.yaml" />
+	
+	<db:config
+		name="Database_Config"
+		doc:name="Database Config"
+		doc:id="350e5f9a-46d8-434a-9389-71462843c7a6"
+	>
+		<db:generic-connection
+			url="${database.url}"
+			driverClassName="${database.driver}"
+			user="${database.username}"
+			password="${database.password}" />
+	</db:config>
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="44af6f60-31fa-4620-b045-5b7a938cae25" >
+		<http:listener-connection host="0.0.0.0" port="${http.port}" />
+	</http:listener-config>
+	<api-gateway:autodiscovery apiId="17288932" ignoreBasePath="true" doc:name="API Autodiscovery" doc:id="65a11178-ac52-482f-8e77-b56eb5b5cde8" flowRef="flight-booking-api-main" />
+
+
+</mule>
